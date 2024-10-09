@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: 093bcd26408f5024cbbfc8816daedea6
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - chestTypeOnePrefab: {fileID: 5420295879897213037, guid: c9d1671a032ae924bb6725ab75b8613d, type: 3}
+  - chestTypeTwoPrefab: {fileID: 7658061235648553275, guid: 37bdbd349152f0345b9ded66439cce6c, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

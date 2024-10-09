@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 7c9f9d5b239ca2b4a9200e704969cb57
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - waterPrefab: {fileID: 4662253583981870935, guid: 204d1daf633fe584e926d1e7ce39069b, type: 3}
+  - isLandedPrefab: {fileID: 2977239275177113698, guid: e9dcf2c361a815c4793d00cd8cc4440b, type: 3}
+  - playerSpawner: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
