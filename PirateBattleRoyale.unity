@@ -132,7 +132,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1170225782047533635, guid: 673b5e987171e2e48b19b7300b5e9f4a, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -10.449256
+      value: -30.949257
       objectReference: {fileID: 0}
     - target: {fileID: 1170225782047533635, guid: 673b5e987171e2e48b19b7300b5e9f4a, type: 3}
       propertyPath: m_LocalPosition.y
@@ -268,7 +268,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8745671997672919874, guid: c9d1671a032ae924bb6725ab75b8613d, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -9.110384
+      value: -29.610384
       objectReference: {fileID: 0}
     - target: {fileID: 8745671997672919874, guid: c9d1671a032ae924bb6725ab75b8613d, type: 3}
       propertyPath: m_LocalPosition.y
@@ -357,7 +357,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4673884053131211825, guid: e9dcf2c361a815c4793d00cd8cc4440b, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -13.36
+      value: -33.86
       objectReference: {fileID: 0}
     - target: {fileID: 4673884053131211825, guid: e9dcf2c361a815c4793d00cd8cc4440b, type: 3}
       propertyPath: m_LocalPosition.y
@@ -445,7 +445,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5bc5c0504c8bd26459145bc69cfc318c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  startRadius: 1
+  startRadius: 10
   finalRadius: 0.03
   shrinkDuration: 20
   centerPoint: {x: 0, y: 0, z: 0}

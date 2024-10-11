@@ -27,6 +27,10 @@ public class StormController : MonoBehaviour
         {
             circleRenderer.UpdateRadius(currentRadius); // Устанавливаем радиус
         }
+
+        // Устанавливаем коллайдер (предполагаем, что он уже настроен в префабе)
+        CircleCollider2D collider = stormVisual.GetComponent<CircleCollider2D>();
+        collider.isTrigger = true; // Убедитесь, что коллайдер является триггером
     }
 
     void Update()
@@ -44,15 +48,41 @@ public class StormController : MonoBehaviour
             if (circleRenderer != null)
             {
                 circleRenderer.UpdateRadius(currentRadius);
-                Debug.Log(currentRadius);
+            }
+
+            // Обновляем радиус коллайдера
+            CircleCollider2D collider = stormVisual.GetComponent<CircleCollider2D>();
+            collider.radius = currentRadius; // Устанавливаем радиус коллайдера равным радиусу шторма
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            // Игрок входит в зону шторма, останавливаем урон
+            HealthController healthController = other.GetComponent<HealthController>();
+            Debug.Log("OnTriggerEnter2D1");
+            if (healthController != null)
+            {
+                Debug.Log("OnTriggerEnter2D2");
+                healthController.StopTakingDamage(); // Останавливаем урон
             }
         }
     }
-    
-    // Метод, который проверяет, находится ли игрок за пределами бури
-    public bool IsPlayerOutside(Vector3 playerPosition)
+
+    private void OnTriggerExit2D(Collider2D other)
     {
-        float distanceFromCenter = Vector3.Distance(centerPoint, playerPosition);
-        return distanceFromCenter > currentRadius;
+        if (other.CompareTag("Player"))
+        {
+            // Игрок покидает зону шторма, запускаем урон
+            HealthController healthController = other.GetComponent<HealthController>();
+            Debug.Log("OnTriggerExit2D1");
+            if (healthController != null)
+            {
+                Debug.Log("OnTriggerExit2D2");
+                healthController.StartTakingDamage(); // Запускаем урон
+            }
+        }
     }
 }
