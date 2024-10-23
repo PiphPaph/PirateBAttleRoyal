@@ -95,6 +95,7 @@ GameObject:
   - component: {fileID: 310916753985637345}
   - component: {fileID: -1299633497928914275}
   - component: {fileID: -1366296195269972983}
+  - component: {fileID: -2060218216989719517}
   m_Layer: 0
   m_Name: waterPrefab
   m_TagString: Water
@@ -112,7 +113,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.55, y: 1.55, z: 1.55}
+  m_LocalScale: {x: 1.563, y: 1.563, z: 1.55}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 903853274974744265}
@@ -161,7 +162,7 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 0.64, y: 0.64}
+  m_Size: {x: 0.642, y: 0.642}
   m_EdgeRadius: 0
 --- !u!210 &-1366296195269972983
 SortingGroup:
@@ -175,3 +176,15 @@ SortingGroup:
   m_SortingLayer: 0
   m_SortingOrder: 1
   m_SortAtRoot: 0
+--- !u!114 &-2060218216989719517
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4662253583981870935}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 931a1335b7527f540814fe8491495b8c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

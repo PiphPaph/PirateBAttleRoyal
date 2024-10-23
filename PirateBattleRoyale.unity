@@ -445,9 +445,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5bc5c0504c8bd26459145bc69cfc318c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  startRadius: 10
-  finalRadius: 0.03
-  shrinkDuration: 20
+  startRadius: 500
+  finalRadius: 0
+  shrinkDuration: 60
   centerPoint: {x: 0, y: 0, z: 0}
   stormVisualPrefab: {fileID: 898528086421562794, guid: 6e5b0732f54451a41b061db5f6ac29c0, type: 3}
 --- !u!4 &933648755

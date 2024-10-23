@@ -1,10 +1,9 @@
 fileFormatVersion: 2
-guid: 5bc5c0504c8bd26459145bc69cfc318c
+guid: 931a1335b7527f540814fe8491495b8c
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences:
-  - stormVisualPrefab: {fileID: 898528086421562794, guid: 6e5b0732f54451a41b061db5f6ac29c0, type: 3}
+  defaultReferences: []
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 
