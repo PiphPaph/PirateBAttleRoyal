@@ -5,96 +5,86 @@ public class MapGenerator : MonoBehaviour
 {
     public int width = 25;
     public int height = 25;
-    public float scale = 30f; //Масштаб для генерации случайных значений шума (Perlin noise), который определяет, будут ли острова на определённой позиции или вода
+    public float scale = 30f;
 
     public GameObject waterPrefab;
     public GameObject isLandedPrefab;
-    public PlayerSpawner playerSpawner; // Ссылка на скрипт спавна
+    public PlayerSpawner playerSpawner;
 
     private Dictionary<Vector2, GameObject> spawnedObjects = new Dictionary<Vector2, GameObject>();
 
     void Start()
     {
         GenerateMap();
-        playerSpawner.SpawnPlayers(width, height); // Вызываем метод спавна
+        playerSpawner.SpawnPlayers(width, height);
     }
 
     void GenerateMap()
     {
-        // Вычисляем смещение для центрирования карты
-        float offsetX = width / 2f;
-        float offsetY = height / 2f;
-
+        // Сначала создаем всю карту с водой
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
             {
-                float xCoord = (float)x / width * scale;
-                float yCoord = (float)y / height * scale;
-                float sample = Mathf.PerlinNoise(xCoord, yCoord);
-
-                // Используем смещение, чтобы центрировать карту
-                Vector2 position = new Vector2(x - offsetX, y - offsetY);
-
-                // Проверяем, занято ли уже место
-                if (spawnedObjects.ContainsKey(position))
-                {
-                    continue;
-                }
-
-                if (sample > 0.5f)
-                {
-                    GameObject island = Instantiate(isLandedPrefab, position, Quaternion.identity);
-                    spawnedObjects[position] = island;
-                }
-                else
-                {
-                    GameObject water = Instantiate(waterPrefab, position, Quaternion.identity);
-                    spawnedObjects[position] = water;
-                }
+                Vector2 position = new Vector2(x - width / 2f, y - height / 2f);
+                GameObject water = Instantiate(waterPrefab, position, Quaternion.identity);
+                spawnedObjects[position] = water;
             }
         }
 
+        // Заполняем границы карты островами
         FillMapBorders();
+
+        // Добавляем случайные острова внутри карты
+        AddRandomIslands();
     }
 
     void FillMapBorders()
     {
-        // Вычисляем смещение для центрирования границ
-        float offsetX = width / 2f;
-        float offsetY = height / 2f;
-
         for (int x = 0; x < width; x++)
         {
-            Vector2 bottomBorder = new Vector2(x - offsetX, -offsetY);
-            Vector2 topBorder = new Vector2(x - offsetX, height - 1 - offsetY);
-
-            // Если на границе уже есть объект, заменяем его на остров
-            ReplaceWithIsland(bottomBorder);
-            ReplaceWithIsland(topBorder);
+            // Нижняя граница
+            ReplaceWithIsland(new Vector2(x - width / 2f, -height / 2f));
+            // Верхняя граница
+            ReplaceWithIsland(new Vector2(x - width / 2f, height / 2f - 1));
         }
 
         for (int y = 0; y < height; y++)
         {
-            Vector2 leftBorder = new Vector2(-offsetX, y - offsetY);
-            Vector2 rightBorder = new Vector2(width - 1 - offsetX, y - offsetY);
-
-            ReplaceWithIsland(leftBorder);
-            ReplaceWithIsland(rightBorder);
+            // Левый край
+            ReplaceWithIsland(new Vector2(-width / 2f, y - height / 2f));
+            // Правый край
+            ReplaceWithIsland(new Vector2(width / 2f - 1, y - height / 2f));
         }
     }
 
-    // Метод для замены объекта на остров
+    void AddRandomIslands()
+    {
+        int islandCount = Random.Range(50, 250); // Увеличиваем количество островов
+
+        for (int i = 0; i < islandCount; i++)
+        {
+            int x = Random.Range(1 - width / 2, width / 2 - 1);
+            int y = Random.Range(1 - height / 2, height / 2 - 1);
+            Vector2 position = new Vector2(x, y);
+
+            // Проверяем, что позиция свободна и можем ставить остров
+            if (!spawnedObjects.ContainsKey(position))
+            {
+                GameObject island = Instantiate(isLandedPrefab, position, Quaternion.identity);
+                spawnedObjects[position] = island;
+            }
+        }
+    }
+
     void ReplaceWithIsland(Vector2 position)
     {
-        // Если на этой позиции уже есть объект, удаляем его
         if (spawnedObjects.ContainsKey(position))
         {
             Destroy(spawnedObjects[position]);
             spawnedObjects.Remove(position);
         }
 
-        // Создаем остров на этой позиции
         GameObject island = Instantiate(isLandedPrefab, position, Quaternion.identity);
         spawnedObjects[position] = island;
     }
