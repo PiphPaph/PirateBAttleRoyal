@@ -152,8 +152,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerPrefab: {fileID: 560056932865288662, guid: 1da3cbfb6a22c854ab7376f5afeb295c, type: 3}
-  numberOfPlayers: 4
+  maxNumberOfPlayers: 4
+  minNumberOfPlayers: 2
   spawnDistanceFromEdge: 2
+  waitTimeBeforeStart: 10
 --- !u!4 &222026822
 Transform:
   m_ObjectHideFlags: 0
@@ -199,9 +201,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startRadius: 500
-  finalRadius: 0.01
+  finalRadius: 0.6
   shrinkDuration: 60
-  centerPoint: {x: 0, y: 0, z: 0}
   stormVisualPrefab: {fileID: 898528086421562794, guid: 6e5b0732f54451a41b061db5f6ac29c0, type: 3}
 --- !u!4 &933648755
 Transform:
@@ -450,7 +451,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   width: 25
   height: 25
-  scale: 30
   waterPrefab: {fileID: 4662253583981870935, guid: 204d1daf633fe584e926d1e7ce39069b, type: 3}
   isLandedPrefab: {fileID: 2977239275177113698, guid: e9dcf2c361a815c4793d00cd8cc4440b, type: 3}
   playerSpawner: {fileID: 222026821}

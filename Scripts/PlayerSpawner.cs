@@ -1,44 +1,92 @@
 using UnityEngine;
 using Photon.Pun;
+using Photon.Realtime;
+using System.Collections;
 
-public class PlayerSpawner : MonoBehaviour
+public class PlayerSpawner : MonoBehaviourPunCallbacks
 {
     public GameObject playerPrefab; // Префаб игрока должен быть зарегистрирован в Photon Resources
-    public int numberOfPlayers = 4; // Количество игроков
+    public int maxNumberOfPlayers = 4; // Максимальное количество игроков
+    public int minNumberOfPlayers = 2; // Минимальное количество игроков для начала игры
     public float spawnDistanceFromEdge = 10f; // Расстояние от края
+    public float waitTimeBeforeStart = 10f; // Время ожидания перед началом игры
 
-    public void SpawnPlayers(int width, int height)
+    private bool gameStarted = false;
+    private int mapWidth;
+    private int mapHeight;
+
+    void Start()
     {
-        
-        for (int i = 0; i < numberOfPlayers; i++)
+        if (PhotonNetwork.IsMasterClient) // Только мастер-клиент управляет спавном и стартом игры
         {
-            Vector2 spawnPoint;
-            bool found = false;
+            StartCoroutine(CheckForStartGame());
+        }
+    }
 
-            // Пытаемся найти позицию для спавна
-            for (int attempts = 0; attempts < 100; attempts++)
+    public void SetMapSize(int width, int height)
+    {
+        mapWidth = width;
+        mapHeight = height;
+    }
+
+    IEnumerator CheckForStartGame()
+    {
+        float timer = waitTimeBeforeStart;
+        while (PhotonNetwork.CurrentRoom.PlayerCount < minNumberOfPlayers && timer > 0f)
+        {
+            yield return new WaitForSeconds(1f);
+            timer -= 1f;
+        }
+
+        if (PhotonNetwork.CurrentRoom.PlayerCount >= minNumberOfPlayers)
+        {
+            gameStarted = true;
+            SpawnPlayers();
+        }
+        else
+        {
+            Debug.LogWarning("Недостаточно игроков для старта игры. Игра не начнётся.");
+        }
+    }
+
+    public void SpawnPlayers()
+    {
+        if (!gameStarted) return;
+
+        foreach (Player player in PhotonNetwork.PlayerList)
+        {
+            if (player.IsLocal)
             {
-                float x = Random.Range(spawnDistanceFromEdge, width - spawnDistanceFromEdge);
-                float y = Random.Range(spawnDistanceFromEdge, height - spawnDistanceFromEdge);
-                spawnPoint = new Vector2(x, y);
+                Vector2 spawnPoint;
+                bool found = false;
 
-                if (IsWater(spawnPoint))
+                // Пытаемся найти позицию для спавна на воде
+                for (int attempts = 0; attempts < 100; attempts++)
                 {
-                    // Используем PhotonNetwork.Instantiate вместо обычного Instantiate
-                    PhotonNetwork.Instantiate("PlayerShipPrefab", spawnPoint, Quaternion.identity);
-                    found = true;
-                    Debug.Log($"Player spawned at {spawnPoint}"); // Логирование успешного спавна
-                    break; // Выход из цикла попыток
-                }
-                else
-                {
-                    Debug.Log($"Attempt {attempts}: No water at {spawnPoint}");
-                }
-            }
+                    // Генерация случайной позиции с учетом расстояния от края
+                    float x = Random.Range(spawnDistanceFromEdge, mapWidth - spawnDistanceFromEdge);
+                    float y = Random.Range(spawnDistanceFromEdge, mapHeight - spawnDistanceFromEdge);
+                    spawnPoint = new Vector2(x - mapWidth / 2f, y - mapHeight / 2f); // Учёт центра карты
 
-            if (!found)
-            {
-                Debug.LogWarning("Не удалось найти место для спавна игрока.");
+                    // Проверка, что позиция находится на воде
+                    if (IsWater(spawnPoint))
+                    {
+                        // Используем PhotonNetwork.Instantiate для создания игрока
+                        PhotonNetwork.Instantiate(playerPrefab.name, spawnPoint, Quaternion.identity);
+                        found = true;
+                        Debug.Log($"Player spawned at {spawnPoint}");
+                        break;
+                    }
+                    else
+                    {
+                        Debug.Log($"Attempt {attempts}: No water at {spawnPoint}");
+                    }
+                }
+
+                if (!found)
+                {
+                    Debug.LogWarning("Не удалось найти место для спавна игрока.");
+                }
             }
         }
     }
@@ -46,7 +94,7 @@ public class PlayerSpawner : MonoBehaviour
     bool IsWater(Vector2 point)
     {
         // Проверяем, находится ли точка в воде
-        Collider2D[] colliders = Physics2D.OverlapCircleAll(point, 0.5f); // Увеличил радиус для проверки
+        Collider2D[] colliders = Physics2D.OverlapCircleAll(point, 0.1f); // Используем малый радиус для точной проверки
         foreach (Collider2D collider in colliders)
         {
             if (collider.gameObject.CompareTag("Water"))
@@ -55,5 +103,15 @@ public class PlayerSpawner : MonoBehaviour
             }
         }
         return false;
+    }
+
+    public override void OnPlayerEnteredRoom(Player newPlayer)
+    {
+        Debug.Log($"Player {newPlayer.NickName} joined the room. Current player count: {PhotonNetwork.CurrentRoom.PlayerCount}");
+    }
+
+    public override void OnPlayerLeftRoom(Player otherPlayer)
+    {
+        Debug.Log($"Player {otherPlayer.NickName} left the room. Current player count: {PhotonNetwork.CurrentRoom.PlayerCount}");
     }
 }
