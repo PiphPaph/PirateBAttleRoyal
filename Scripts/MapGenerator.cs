@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Photon.Pun;
+using Photon.Realtime;
 
-public class MapGenerator : MonoBehaviour
+public class MapGenerator : MonoBehaviourPunCallbacks
 {
     public int width = 25;
     public int height = 25;
@@ -11,17 +13,37 @@ public class MapGenerator : MonoBehaviour
     public PlayerSpawner playerSpawner;
 
     private Dictionary<Vector2, GameObject> spawnedObjects = new Dictionary<Vector2, GameObject>();
-    private List<Vector2> waterPositions = new List<Vector2>(); // Список всех клеток с водой
+    private List<Vector2> waterPositions = new List<Vector2>();
+
+    private int mapSeed;
 
     void Start()
     {
-        //GenerateMap();
-        playerSpawner.SpawnPlayers();
+        if (PhotonNetwork.IsMasterClient)
+        {
+            mapSeed = Random.Range(0, 10000);
+            PhotonNetwork.CurrentRoom.SetCustomProperties(new ExitGames.Client.Photon.Hashtable { { "MapSeed", mapSeed } });
+        }
+        else
+        {
+            mapSeed = (int)PhotonNetwork.CurrentRoom.CustomProperties["MapSeed"];
+        }
+
+        Random.InitState(mapSeed);
+        GenerateMap();
+
+        // Передаём данные о карте в PlayerSpawner
+        playerSpawner.Initialize(width, height, new List<Vector2>(waterPositions));
+
+        // Только мастер спавнит игроков
+        if (PhotonNetwork.IsMasterClient)
+        {
+            playerSpawner.SpawnPlayer();
+        }
     }
 
     public void GenerateMap()
     {
-        // Создаем карту с водой и сохраняем координаты всех клеток воды
         for (int x = -width / 2; x < width / 2; x++)
         {
             for (int y = -height / 2; y < height / 2; y++)
@@ -29,35 +51,28 @@ public class MapGenerator : MonoBehaviour
                 Vector2 position = new Vector2(x, y);
                 GameObject water = Instantiate(waterPrefab, position, Quaternion.identity);
                 spawnedObjects[position] = water;
-                waterPositions.Add(position); // Добавляем координаты воды
+                waterPositions.Add(position);
             }
         }
-        
-        // Заполняем границы карты островами
+
         FillMapBorders();
-        
-        // Добавляем случайные острова внутри карты
         AddRandomIslands();
     }
 
     void FillMapBorders()
     {
-        // Заполнение верхней и нижней границы карты
         for (int x = -width / 2; x < width / 2; x++)
         {
-            Vector2 topPosition = new Vector2(x, height / 2 - 1); // Верхняя граница
-            Vector2 bottomPosition = new Vector2(x, -height / 2); // Нижняя граница
-
+            Vector2 topPosition = new Vector2(x, height / 2 - 1);
+            Vector2 bottomPosition = new Vector2(x, -height / 2);
             PlaceIslandIfWater(topPosition);
             PlaceIslandIfWater(bottomPosition);
         }
 
-        // Заполнение левой и правой границы карты
         for (int y = -height / 2; y < height / 2; y++)
         {
-            Vector2 leftPosition = new Vector2(-width / 2, y); // Левая граница
-            Vector2 rightPosition = new Vector2(width / 2 - 1, y); // Правая граница
-
+            Vector2 leftPosition = new Vector2(-width / 2, y);
+            Vector2 rightPosition = new Vector2(width / 2 - 1, y);
             PlaceIslandIfWater(leftPosition);
             PlaceIslandIfWater(rightPosition);
         }
@@ -65,105 +80,106 @@ public class MapGenerator : MonoBehaviour
 
     void PlaceIslandIfWater(Vector2 position)
     {
-        // Проверяем, что в этой позиции находится вода, и можем разместить остров
         if (spawnedObjects.TryGetValue(position, out GameObject obj) && obj.CompareTag("Water"))
         {
-            // Уничтожаем воду и ставим остров
             Destroy(obj);
             GameObject island = Instantiate(isLandedPrefab, position, Quaternion.identity);
             spawnedObjects[position] = island;
-            waterPositions.Remove(position); // Убираем эту позицию из списка воды
+            waterPositions.Remove(position);
         }
     }
 
     void AddRandomIslands()
     {
-    int islandCount = Random.Range(10, 25); // Количество отдельных островов
+        int islandCount = Random.Range(10, 20);
 
-    for (int i = 0; i < islandCount; i++)
-    {
-        // Случайная начальная позиция для острова (не на границах)
-        int startX = Random.Range(-width / 2 + 2, width / 2 - 2);
-        int startY = Random.Range(-height / 2 + 2, height / 2 - 2);
-        Vector2 startPosition = new Vector2(startX, startY);
-
-        // Проверяем, что начальная позиция является водой
-        if (spawnedObjects.TryGetValue(startPosition, out GameObject obj) && obj.CompareTag("Water"))
+        for (int i = 0; i < islandCount; i++)
         {
-            // Генерируем остров произвольной формы с размером от 4 до 12 клеток
-            GenerateIsland(startPosition, Random.Range(3, 6));
+            int startX = Random.Range(-width / 2 + 2, width / 2 - 2);
+            int startY = Random.Range(-height / 2 + 2, height / 2 - 2);
+            Vector2 startPosition = new Vector2(startX, startY);
+
+            if (spawnedObjects.TryGetValue(startPosition, out GameObject obj) && obj.CompareTag("Water"))
+            {
+                GenerateSolidIsland(startPosition, Random.Range(4, 10));
+            }
         }
     }
-    }
 
-    private void GenerateIsland(Vector2 startPosition, int islandSize)
+    private void GenerateSolidIsland(Vector2 startPosition, int islandSize)
     {
-    Queue<Vector2> positions = new Queue<Vector2>();
-    positions.Enqueue(startPosition);
+        Queue<Vector2> positions = new Queue<Vector2>();
+        positions.Enqueue(startPosition);
 
-    HashSet<Vector2> occupiedPositions = new HashSet<Vector2>(); // Для отслеживания занятых позиций
-    occupiedPositions.Add(startPosition);
-    ReplaceWithIsland(startPosition); // Размещаем первый участок острова
+        HashSet<Vector2> occupiedPositions = new HashSet<Vector2> { startPosition };
+        ReplaceWithIsland(startPosition);
 
-    while (positions.Count > 0 && occupiedPositions.Count < islandSize)
-    {
-        Vector2 position = positions.Dequeue();
+        int layers = Mathf.CeilToInt(Mathf.Sqrt(islandSize));
 
-        // Добавляем соседние позиции
-        for (int dx = -1; dx <= 1; dx++)
+        for (int layer = 0; layer < layers; layer++)
         {
-            for (int dy = -1; dy <= 1; dy++)
+            int layerCount = positions.Count;
+
+            for (int i = 0; i < layerCount && occupiedPositions.Count < islandSize; i++)
             {
-                if (dx == 0 && dy == 0) continue; // Пропускаем саму позицию
+                Vector2 position = positions.Dequeue();
 
-                Vector2 newPos = position + new Vector2(dx, dy);
-
-                // Проверяем, что новая позиция находится в пределах карты и является водой
-                if (IsInBounds(newPos) && spawnedObjects.TryGetValue(newPos, out GameObject obj) && obj.CompareTag("Water"))
+                foreach (Vector2 offset in GetNeighborOffsets())
                 {
-                    // Добавляем новую позицию к острову
-                    if (!occupiedPositions.Contains(newPos))
+                    Vector2 newPos = position + offset;
+
+                    if (IsInBounds(newPos) && spawnedObjects.TryGetValue(newPos, out GameObject obj) && obj.CompareTag("Water") && !occupiedPositions.Contains(newPos))
                     {
                         positions.Enqueue(newPos);
                         occupiedPositions.Add(newPos);
-                        ReplaceWithIsland(newPos); // Размещаем новый участок острова
+                        ReplaceWithIsland(newPos);
                     }
                 }
             }
         }
     }
-}
 
-private bool IsInBounds(Vector2 position)
-{
-    return position.x >= -width / 2 + 1 && position.x < width / 2 - 1 && position.y >= -height / 2 + 1 && position.y < height / 2 - 1;
-}
-
-void ReplaceWithIsland(Vector2 position)
-{
-    // Уничтожаем старый объект, если он есть
-    if (spawnedObjects.ContainsKey(position))
+    private bool IsInBounds(Vector2 position)
     {
-        Destroy(spawnedObjects[position]);
-        spawnedObjects.Remove(position);
+        return position.x >= -width / 2 + 1 && position.x < width / 2 - 1 && position.y >= -height / 2 + 1 && position.y < height / 2 - 1;
     }
 
-    // Создаем новый объект острова
-    GameObject island = Instantiate(isLandedPrefab, position, Quaternion.identity);
-    spawnedObjects[position] = island;
-    waterPositions.Remove(position); // Убираем эту позицию из списка воды
-}
-
-
-    public Vector2 GetRandomWaterPosition()
+    private List<Vector2> GetNeighborOffsets()
     {
-        // Используем уже существующий список waterPositions
-        if (waterPositions.Count > 0)
+        return new List<Vector2>
         {
-            return waterPositions[Random.Range(0, waterPositions.Count)];
+            new Vector2(1, 0),
+            new Vector2(-1, 0),
+            new Vector2(0, 1),
+            new Vector2(0, -1),
+        };
+    }
+
+    void ReplaceWithIsland(Vector2 position)
+    {
+        if (spawnedObjects.ContainsKey(position))
+        {
+            Destroy(spawnedObjects[position]);
+            spawnedObjects.Remove(position);
         }
 
-        // Если нет позиций воды, возвращаем (0, 0)
+        GameObject island = Instantiate(isLandedPrefab, position, Quaternion.identity);
+        spawnedObjects[position] = island;
+        waterPositions.Remove(position);
+    }
+
+    /// <summary>
+    /// Возвращает случайную позицию воды.
+    /// </summary>
+    public Vector2 GetRandomWaterPosition()
+    {
+        if (waterPositions.Count > 0)
+        {
+            int randomIndex = Random.Range(0, waterPositions.Count);
+            return waterPositions[randomIndex];
+        }
+
+        Debug.LogWarning("Нет доступных позиций воды.");
         return Vector2.zero;
     }
 }

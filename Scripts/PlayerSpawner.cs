@@ -1,103 +1,104 @@
+using System.Collections;
 using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
-using System.Collections;
+using System.Collections.Generic;
 
 public class PlayerSpawner : MonoBehaviourPunCallbacks
 {
-    public GameObject playerPrefab; // Префаб игрока должен быть зарегистрирован в Photon Resources
+    public GameObject playerPrefab; // Префаб игрока, зарегистрированный в Photon Resources
     public int maxNumberOfPlayers = 4; // Максимальное количество игроков
     public int minNumberOfPlayers = 2; // Минимальное количество игроков для начала игры
-    public float spawnDistanceFromEdge = 10f; // Расстояние от края
-    public float waitTimeBeforeStart = 10f; // Время ожидания перед началом игры
+    public float spawnDistanceFromEdge = 10f; // Расстояние от края карты
 
-    private bool gameStarted = false;
     private int mapWidth;
     private int mapHeight;
+    private List<Vector2> waterPositions; // Список позиций воды
+
+    public void Initialize(int width, int height, List<Vector2> waterPositions)
+    {
+        this.mapWidth = width;
+        this.mapHeight = height;
+        this.waterPositions = waterPositions;
+    }
 
     void Start()
     {
-        if (PhotonNetwork.IsMasterClient) // Только мастер-клиент управляет спавном и стартом игры
+        if (PhotonNetwork.IsConnected && PhotonNetwork.InRoom && PhotonNetwork.LocalPlayer.IsLocal)
         {
-            StartCoroutine(CheckForStartGame());
+            StartCoroutine(WaitForPlayersAndSpawn());
         }
     }
 
-    public void SetMapSize(int width, int height)
+    IEnumerator WaitForPlayersAndSpawn()
     {
-        mapWidth = width;
-        mapHeight = height;
-    }
-
-    IEnumerator CheckForStartGame()
-    {
-        float timer = waitTimeBeforeStart;
-        while (PhotonNetwork.CurrentRoom.PlayerCount < minNumberOfPlayers && timer > 0f)
+        // Ждём минимального количества игроков
+        while (PhotonNetwork.CurrentRoom.PlayerCount < minNumberOfPlayers)
         {
+            Debug.Log($"Ожидание других игроков... Текущие игроки: {PhotonNetwork.CurrentRoom.PlayerCount}/{minNumberOfPlayers}");
             yield return new WaitForSeconds(1f);
-            timer -= 1f;
         }
 
-        if (PhotonNetwork.CurrentRoom.PlayerCount >= minNumberOfPlayers)
+        // Убедимся, что каждый игрок спавнит только своего корабля
+        if (PhotonNetwork.LocalPlayer.IsMasterClient || !AlreadySpawned())
         {
-            gameStarted = true;
-            SpawnPlayers();
-        }
-        else
-        {
-            Debug.LogWarning("Недостаточно игроков для старта игры. Игра не начнётся.");
+            SpawnPlayer();
         }
     }
 
-    public void SpawnPlayers()
+    public void SpawnPlayer()
     {
-        if (!gameStarted) return;
+        Vector2 spawnPoint;
+        bool found = false;
 
-        foreach (Player player in PhotonNetwork.PlayerList)
+        for (int attempts = 0; attempts < 100; attempts++)
         {
-            if (player.IsLocal)
+            float x = Random.Range(spawnDistanceFromEdge, mapWidth - spawnDistanceFromEdge);
+            float y = Random.Range(spawnDistanceFromEdge, mapHeight - spawnDistanceFromEdge);
+            spawnPoint = new Vector2(x - mapWidth / 2f, y - mapHeight / 2f); // Учёт центра карты
+
+            if (IsWater(spawnPoint))
             {
-                Vector2 spawnPoint;
-                bool found = false;
-
-                // Пытаемся найти позицию для спавна на воде
-                for (int attempts = 0; attempts < 100; attempts++)
-                {
-                    // Генерация случайной позиции с учетом расстояния от края
-                    float x = Random.Range(spawnDistanceFromEdge, mapWidth - spawnDistanceFromEdge);
-                    float y = Random.Range(spawnDistanceFromEdge, mapHeight - spawnDistanceFromEdge);
-                    spawnPoint = new Vector2(x - mapWidth / 2f, y - mapHeight / 2f); // Учёт центра карты
-
-                    // Проверка, что позиция находится на воде
-                    if (IsWater(spawnPoint))
-                    {
-                        // Используем PhotonNetwork.Instantiate для создания игрока
-                        PhotonNetwork.Instantiate(playerPrefab.name, spawnPoint, Quaternion.identity);
-                        found = true;
-                        Debug.Log($"Player spawned at {spawnPoint}");
-                        break;
-                    }
-                    else
-                    {
-                        Debug.Log($"Attempt {attempts}: No water at {spawnPoint}");
-                    }
-                }
-
-                if (!found)
-                {
-                    Debug.LogWarning("Не удалось найти место для спавна игрока.");
-                }
+                PhotonNetwork.Instantiate(playerPrefab.name, spawnPoint, Quaternion.identity);
+                found = true;
+                Debug.Log($"Player spawned at {spawnPoint}");
+                break;
             }
+        }
+
+        if (!found)
+        {
+            Debug.LogWarning("Не удалось найти место для спавна игрока.");
         }
     }
 
     bool IsWater(Vector2 point)
     {
-        // Проверяем, находится ли точка в воде
-        Collider2D[] colliders = Physics2D.OverlapCircleAll(point, 0.1f); // Используем малый радиус для точной проверки
-        foreach (Collider2D collider in colliders)
+        if (waterPositions == null || waterPositions.Count == 0)
         {
-            if (collider.gameObject.CompareTag("Water"))
+            Debug.LogWarning("Список позиций воды пуст.");
+            return false;
+        }
+
+        foreach (Vector2 waterPosition in waterPositions)
+        {
+            if (Vector2.Distance(point, waterPosition) < 0.5f) // Допускаем небольшую погрешность
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool AlreadySpawned()
+    {
+        // Проверяем, есть ли объект игрока, принадлежащий текущему клиенту
+        GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player"); // Убедитесь, что префабы имеют тег "Player"
+        foreach (var player in allPlayers)
+        {
+            PhotonView photonView = player.GetComponent<PhotonView>();
+            if (photonView != null && photonView.IsMine)
             {
                 return true;
             }
